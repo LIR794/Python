@@ -3,45 +3,39 @@ import requests
 from openpyxl import load_workbook
 
 # Загрузка таблицы
-workbook = load_workbook('Укажите путь до файла')
+workbook = load_workbook("/file")
 
 results = []  # Список для хранения результатов
 
+day_mapping = {
+    'понедельник': 'monday',
+    'вторник': 'tuesday',
+    'среда': 'wednesday',
+    'четверг': 'thursday',
+    'пятница': 'friday',
+    'суббота': 'saturday',
+    'воскресенье': 'sunday'
+}
+group = None  # Переменная для хранения предыдущего значения
 # Проход по всем листам в книге
 for sheet_name in workbook.sheetnames:
     sheet = workbook[sheet_name]
 
-   
-
-    previous_value = None  # Переменная для хранения предыдущего значения
     for column in sheet.iter_cols():
         for cell in column:
-            if cell.value == 0:
-                row_above = cell.row - 2
-                day_of_week = sheet.cell(row=cell.row, column=cell.column - 1).value
-                day_mapping = {
-                    'понедельник': 'monday',
-                    'вторник': 'tuesday',
-                    'среда': 'wednesday',
-                    'четверг': 'thursday',
-                    'пятница': 'friday',
-                    'суббота': 'saturday',
-                    'воскресенье': 'sunday'
-                }
+            if cell.value in day_mapping:
+                day_of_week = sheet.cell(row=cell.row, column=cell.column).value
                 day_of_week_eng = day_mapping.get(day_of_week)
-                value_above = sheet.cell(row=row_above, column=cell.column).value
-                previous_value = sheet.cell(row=row_above, column=cell.column).value if value_above != 5 else previous_value
+                if day_of_week == 'понедельник':
+                    group = sheet.cell(row=cell.row - 2, column=cell.column + 1 ).value
 
-                if value_above == 5:
-                    output = {"groupName": previous_value, "weekDay": day_of_week_eng, "pairs": []}
-                else:
-                    output = {"groupName": value_above, "weekDay": day_of_week_eng, "pairs": []}
+                output = {"groupName": group, "weekDay": day_of_week_eng, "pairs": []}
 
                 # Добавление значений из соседних ячеек
                 for i in range(0, 6):  # 6 строк вниз
-                    pair_column = cell.column + 1
-                    room_column = cell.column + 2
-                    pair_number_column = cell.column
+                    pair_column = cell.column + 2
+                    room_column = cell.column + 3
+                    pair_number_column = cell.column + 1
 
                     pair_value = sheet.cell(row=cell.row + i, column=pair_column).value
                     room_value = sheet.cell(row=cell.row + i, column=room_column).value
@@ -61,15 +55,18 @@ for sheet_name in workbook.sheetnames:
 
 
 payload = {
-    "password": "укажите пароль с send запроса",
+    "password": "send-pass",
     "groups": results
 }
 
 
 json_payload = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
 
+# with open("лог.json", "w", encoding='utf-8') as data:
+#      data.write(json_payload)
+
     # Отправка файла по ссылке
-server_url = "ссылка на send запрос"  # Замените на вашу ссылку
+server_url = ""  # Замените на вашу ссылку
 response = requests.post(server_url, json=payload, headers={'Content-Type': 'application/json'})
 print(f"Отправка результатов на сайт для листа '{sheet_name}': {response.status_code} - {response.text}")
  
